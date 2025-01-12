@@ -209,18 +209,14 @@
 
         // Function to scan the videos folder and return video files
         async function scanVideos() {
-            // Define the base URL for the videos
+            // Using GitHub Pages URL as it's better for serving media files
             const baseUrl = 'https://victordelrosal.github.io/bbvids/videos/';
+            const videoFiles = [];
             
-            // Define the list of videos (adjust according to your actual video files)
-            const videoFiles = [
-                'video1.mp4',
-                'video2.mp4',
-                'video3.mp4',
-                'video4.mp4',
-                'video5.mp4'
-                // Add more video files as needed
-            ];
+            // Generate array for all 19 videos
+            for (let i = 1; i <= 19; i++) {
+                videoFiles.push(`${i}.mp4`);
+            }
             
             return videoFiles.map(file => baseUrl + file);
         }
