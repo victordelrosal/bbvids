@@ -463,6 +463,16 @@
             /* ...rest of your mobile styles... */
         }
     </style>
+    <script>
+        // Add this at the start of your script to ensure video attributes are set immediately
+        document.addEventListener('DOMContentLoaded', function() {
+            const videoPlayer = document.getElementById('videoPlayer');
+            videoPlayer.setAttribute('playsinline', '');
+            videoPlayer.setAttribute('webkit-playsinline', '');
+            videoPlayer.setAttribute('muted', '');
+            videoPlayer.setAttribute('autoplay', '');
+        });
+    </script>
 </head>
 <body>
     <div class="sidebar" id="sidebar"></div>
@@ -592,24 +602,33 @@
                 videoPlayer.src = videos[index].url;
                 videoPlayer.load();
                 
-                // Force autoplay with both play() promises
-                const playPromise = videoPlayer.play();
-                if (playPromise !== undefined) {
-                    playPromise
-                        .then(() => {
-                            // Auto-play started
-                        })
-                        .catch(error => {
-                            // Show play button or prompt user to tap for first play
-                            console.log("Autoplay prevented:", error);
-                            // Try playing on first user interaction
-                            document.addEventListener('touchstart', function initializeVideo() {
-                                videoPlayer.play();
-                                document.removeEventListener('touchstart', initializeVideo);
-                            }, { once: true });
-                        });
-                }
+                // Enhanced autoplay handling
+                const startPlayback = async () => {
+                    try {
+                        videoPlayer.muted = true; // Ensure muted for first play
+                        await videoPlayer.play();
+                        // Unmute after successful autoplay
+                        const unmuteHandler = () => {
+                            videoPlayer.muted = false;
+                            document.removeEventListener('touchstart', unmuteHandler);
+                        };
+                        document.addEventListener('touchstart', unmuteHandler, { once: true });
+                    } catch (err) {
+                        console.log('Autoplay prevented:', err);
+                        // Fallback for user interaction requirement
+                        const playHandler = async () => {
+                            try {
+                                await videoPlayer.play();
+                                document.removeEventListener('touchstart', playHandler);
+                            } catch (e) {
+                                console.error('Play failed:', e);
+                            }
+                        };
+                        document.addEventListener('touchstart', playHandler, { once: true });
+                    }
+                };
 
+                startPlayback();
                 updateControls();
 
                 const activeThumbnail = thumbnails[index];
@@ -667,15 +686,28 @@
         // Initialize application
         async function initializeApp() {
             videos = await scanVideos();
+            
+            // Set up first video immediately
+            if (videos.length > 0) {
+                videoPlayer.src = videos[0].url;
+                videoPlayer.load();
+                videoPlayer.muted = true;
+                
+                // Try to play immediately
+                try {
+                    await videoPlayer.play();
+                } catch (err) {
+                    console.log('Initial autoplay prevented:', err);
+                }
+            }
+
+            // Continue with thumbnail creation
             for (let i = 0; i < videos.length; i++) {
                 const thumbnail = await createThumbnail(videos[i], i);
                 sidebar.appendChild(thumbnail);
             }
             
-            if (videos.length > 0) {
-                loadVideo(0);
-                updateControls();
-            }
+            updateControls();
         }
 
         // Add new mobile-specific functions
@@ -752,11 +784,13 @@
             videoPlayer.setAttribute('webkit-playsinline', ''); // For older iOS versions
             videoPlayer.muted = true; // Initially mute to help with autoplay
             
-            // Enable sound on first user interaction
-            document.addEventListener('touchstart', function enableSound() {
+            // Attempt to unmute on first interaction
+            const unmuteOnInteraction = () => {
                 videoPlayer.muted = false;
-                document.removeEventListener('touchstart', enableSound);
-            }, { once: true });
+                videoPlayer.play().catch(err => console.log('Play after unmute failed:', err));
+                document.removeEventListener('touchstart', unmuteOnInteraction);
+            };
+            document.addEventListener('touchstart', unmuteOnInteraction, { once: true });
 
             // Ensure proper video sizing on orientation change
             window.addEventListener('resize', () => {
