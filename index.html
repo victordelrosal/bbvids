@@ -49,6 +49,9 @@
             height: 100%;
             object-fit: cover;
             background: #2a2a2a;
+            background-size: cover;
+            background-position: center;
+            border-radius: 3px;
         }
 
         .thumbnail-title {
@@ -221,16 +224,54 @@
             return videoFiles.map(file => baseUrl + file);
         }
 
-        function createThumbnail(video, index) {
+        async function generateThumbnail(videoUrl) {
+            try {
+                const video = document.createElement('video');
+                const canvas = document.createElement('canvas');
+                const ctx = canvas.getContext('2d');
+                
+                video.crossOrigin = 'anonymous';
+                video.src = videoUrl;
+                
+                await new Promise((resolve) => {
+                    video.addEventListener('loadedmetadata', () => {
+                        canvas.width = 100;
+                        canvas.height = 56;
+                        resolve();
+                    });
+                });
+                
+                video.currentTime = 1;
+                
+                await new Promise((resolve) => {
+                    video.addEventListener('seeked', () => {
+                        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                        resolve();
+                    });
+                });
+                
+                return canvas.toDataURL('image/jpeg', 0.7);
+            } catch (error) {
+                console.error('Error generating thumbnail:', error);
+                return null;
+            }
+        }
+
+        async function createThumbnail(videoUrl, index) {
             const container = document.createElement('div');
             container.className = 'thumbnail-container';
             if (index === currentVideoIndex) container.classList.add('active');
 
             const thumbnail = document.createElement('div');
             thumbnail.className = 'thumbnail';
-            // Create a number-based background color
-            const hue = (index * 50) % 360;
-            thumbnail.style.backgroundColor = `hsl(${hue}, 70%, 30%)`;
+            
+            const thumbnailUrl = await generateThumbnail(videoUrl);
+            if (thumbnailUrl) {
+                thumbnail.style.backgroundImage = `url(${thumbnailUrl})`;
+            } else {
+                const hue = (index * 50) % 360;
+                thumbnail.style.backgroundColor = `hsl(${hue}, 70%, 30%)`;
+            }
 
             const title = document.createElement('div');
             title.className = 'thumbnail-title';
@@ -309,10 +350,10 @@
         // Initialize application
         async function initializeApp() {
             videos = await scanVideos();
-            videos.forEach((video, index) => {
-                const thumbnail = createThumbnail(video, index);
+            for (let i = 0; i < videos.length; i++) {
+                const thumbnail = await createThumbnail(videos[i], i);
                 sidebar.appendChild(thumbnail);
-            });
+            }
             
             if (videos.length > 0) {
                 loadVideo(0);
