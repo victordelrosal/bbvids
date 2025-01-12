@@ -1,8 +1,7 @@
 {
     "videos": [
-        {"filename": "1.mp4", "title": "Video 1"},
-        {"filename": "2.mp4", "title": "Video 2"},
-        {"filename": "3.mp4", "title": "Video 3"}
-        // ... add all your videos here
+      {"filename": "1.mp4", "title": "Video 1"},
+      {"filename": "2.mp4", "title": "Video 2"},
+      {"filename": "3.mp4", "title": "Video 3"}
     ]
-}
+  }  
