@@ -289,6 +289,120 @@
         .thumbnail-container.loading {
             animation: pulse 1.5s infinite;
         }
+
+        /* Mobile-First Improvements */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                height: 30%;
+                display: grid;
+                grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+                gap: 10px;
+                padding: 15px;
+                background: rgba(0, 0, 0, 0.95);
+                backdrop-filter: blur(10px);
+                transform: translateY(100%);
+                transition: transform 0.3s ease;
+                z-index: 1000;
+            }
+
+            .sidebar.visible {
+                transform: translateY(0);
+            }
+
+            .thumbnail-container {
+                width: 100%;
+                height: 0;
+                padding-bottom: 56.25%; /* 16:9 aspect ratio */
+                margin: 0;
+                position: relative;
+                border-radius: 8px;
+                overflow: hidden;
+            }
+
+            .thumbnail-title {
+                display: block;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                top: auto;
+                transform: none;
+                background: linear-gradient(transparent, rgba(0,0,0,0.8));
+                padding: 8px;
+                font-size: 12px;
+                text-align: center;
+            }
+
+            /* Mini-player styles */
+            .mini-player {
+                position: fixed;
+                bottom: calc(30% + 10px);
+                right: 10px;
+                width: 160px;
+                height: 90px;
+                background: #000;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+                z-index: 1001;
+                transition: all 0.3s ease;
+            }
+
+            .mini-player.hidden {
+                transform: translateX(200%);
+            }
+
+            /* Enhanced mobile controls */
+            .controls {
+                opacity: 1;
+                background: linear-gradient(transparent, rgba(0,0,0,0.9));
+                padding: 20px 15px;
+            }
+
+            .nav-button {
+                width: 50px;
+                height: 50px;
+                border-radius: 25px;
+                padding: 0;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: rgba(255,255,255,0.2);
+                backdrop-filter: blur(5px);
+            }
+
+            /* Fullscreen improvements */
+            .player-wrapper.fullscreen {
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: #000;
+                z-index: 2000;
+            }
+
+            /* Toggle button for sidebar */
+            .toggle-sidebar {
+                position: fixed;
+                bottom: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                padding: 8px 20px;
+                background: rgba(255,255,255,0.2);
+                backdrop-filter: blur(5px);
+                border: none;
+                border-radius: 20px;
+                color: white;
+                z-index: 1002;
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -305,6 +419,10 @@
             </div>
         </div>
     </div>
+    <button class="toggle-sidebar" id="toggleSidebar">
+        <span class="icon">▲</span>
+        <span>Videos</span>
+    </button>
 
     <script>
         let currentVideoIndex = 0;
@@ -481,8 +599,82 @@
             }
         }
 
-        // Start the application
-        initializeApp();
+        // Add new mobile-specific functions
+        function initMobileFeatures() {
+            const sidebar = document.querySelector('.sidebar');
+            const toggleBtn = document.getElementById('toggleSidebar');
+            let touchStartY = 0;
+            let touchStartTime = 0;
+
+            // Toggle sidebar
+            toggleBtn.addEventListener('click', () => {
+                sidebar.classList.toggle('visible');
+                toggleBtn.querySelector('.icon').textContent = 
+                    sidebar.classList.contains('visible') ? '▼' : '▲';
+            });
+
+            // Double tap to fullscreen
+            let lastTap = 0;
+            videoPlayer.addEventListener('touchend', (e) => {
+                const currentTime = new Date().getTime();
+                const tapLength = currentTime - lastTap;
+                if (tapLength < 500 && tapLength > 0) {
+                    if (document.fullscreenElement) {
+                        document.exitFullscreen();
+                    } else {
+                        videoPlayer.requestFullscreen();
+                    }
+                }
+                lastTap = currentTime;
+            });
+
+            // Swipe gestures for volume and seeking
+            videoPlayer.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                touchStartTime = e.timeStamp;
+            }, { passive: true });
+
+            videoPlayer.addEventListener('touchmove', (e) => {
+                const deltaY = touchStartY - e.touches[0].clientY;
+                const deltaTime = e.timeStamp - touchStartTime;
+
+                if (Math.abs(deltaY) > 50 && deltaTime < 300) {
+                    videoPlayer.volume = Math.max(0, Math.min(1, 
+                        videoPlayer.volume + (deltaY > 0 ? 0.1 : -0.1)
+                    ));
+                }
+            }, { passive: true });
+
+            // Lazy loading for thumbnails
+            const options = {
+                root: sidebar,
+                rootMargin: '50px',
+                threshold: 0.1
+            };
+
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        const thumbnail = entry.target;
+                        if (thumbnail.dataset.src) {
+                            thumbnail.style.backgroundImage = `url(${thumbnail.dataset.src})`;
+                            thumbnail.dataset.src = '';
+                        }
+                    }
+                });
+            }, options);
+
+            document.querySelectorAll('.thumbnail').forEach(thumb => {
+                observer.observe(thumb);
+            });
+        }
+
+        // Initialize mobile features after the app loads
+        initializeApp().then(() => {
+            if (window.innerWidth <= 768) {
+                initMobileFeatures();
+            }
+        });
     </script>
 </body>
 </html>
