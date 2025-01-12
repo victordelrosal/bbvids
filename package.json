@@ -1,0 +1,11 @@
+{
+  "name": "bbvids",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "update": "node update-videos.js"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
