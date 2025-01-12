@@ -209,33 +209,20 @@
 
         // Function to scan the videos folder and return video files
         async function scanVideos() {
-            try {
-                const response = await fetch('./videos/');
-                const text = await response.text();
-                
-                // Create a temporary DOM element to parse the directory listing
-                const tempDiv = document.createElement('div');
-                tempDiv.innerHTML = text;
-                
-                // Get all links from the directory listing
-                const links = Array.from(tempDiv.getElementsByTagName('a'));
-                
-                // Filter for video files and sort them numerically
-                const videoFiles = links
-                    .map(link => link.href)
-                    .filter(href => href.match(/\.(mp4|webm|ogg)$/i))
-                    .map(href => href.split('/').pop()) // Get just the filename
-                    .sort((a, b) => {
-                        const numA = parseInt(a.match(/\d+/)) || 0;
-                        const numB = parseInt(b.match(/\d+/)) || 0;
-                        return numA - numB;
-                    });
-                
-                return videoFiles.map(file => `./videos/${file}`);
-            } catch (error) {
-                console.error('Error scanning videos:', error);
-                return [];
-            }
+            // Define the base URL for the videos
+            const baseUrl = 'https://victordelrosal.github.io/bbvids/videos/';
+            
+            // Define the list of videos (adjust according to your actual video files)
+            const videoFiles = [
+                'video1.mp4',
+                'video2.mp4',
+                'video3.mp4',
+                'video4.mp4',
+                'video5.mp4'
+                // Add more video files as needed
+            ];
+            
+            return videoFiles.map(file => baseUrl + file);
         }
 
         function createThumbnail(video, index) {
