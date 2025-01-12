@@ -212,16 +212,31 @@
 
         // Function to scan the videos folder and return video files
         async function scanVideos() {
-            // Using GitHub Pages URL as it's better for serving media files
-            const baseUrl = 'https://victordelrosal.github.io/bbvids/videos/';
-            const videoFiles = [];
-            
-            // Generate array for all 19 videos
-            for (let i = 1; i <= 19; i++) {
-                videoFiles.push(`${i}.mp4`);
+            try {
+                const baseUrl = 'https://victordelrosal.github.io/bbvids/videos/';
+                const response = await fetch(`${baseUrl}videos.json`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to load videos.json');
+                }
+                
+                const data = await response.json();
+                return data.videos.map(video => ({
+                    url: baseUrl + video.filename,
+                    title: video.title
+                }));
+            } catch (error) {
+                console.error('Error loading videos:', error);
+                // Fallback to the previous implementation if JSON fails
+                const videoFiles = [];
+                for (let i = 1; i <= 19; i++) {
+                    videoFiles.push({
+                        url: `${baseUrl}${i}.mp4`,
+                        title: `Video ${i}`
+                    });
+                }
+                return videoFiles;
             }
-            
-            return videoFiles.map(file => baseUrl + file);
         }
 
         async function generateThumbnail(videoUrl) {
@@ -257,7 +272,7 @@
             }
         }
 
-        async function createThumbnail(videoUrl, index) {
+        async function createThumbnail(videoData, index) {
             const container = document.createElement('div');
             container.className = 'thumbnail-container';
             if (index === currentVideoIndex) container.classList.add('active');
@@ -265,7 +280,7 @@
             const thumbnail = document.createElement('div');
             thumbnail.className = 'thumbnail';
             
-            const thumbnailUrl = await generateThumbnail(videoUrl);
+            const thumbnailUrl = await generateThumbnail(videoData.url);
             if (thumbnailUrl) {
                 thumbnail.style.backgroundImage = `url(${thumbnailUrl})`;
             } else {
@@ -275,7 +290,7 @@
 
             const title = document.createElement('div');
             title.className = 'thumbnail-title';
-            title.textContent = `Video ${index + 1}`;
+            title.textContent = videoData.title;
 
             container.appendChild(thumbnail);
             container.appendChild(title);
@@ -292,7 +307,7 @@
                 });
 
                 currentVideoIndex = index;
-                videoPlayer.src = videos[index];
+                videoPlayer.src = videos[index].url;
                 videoPlayer.load();
                 videoPlayer.play().catch(e => console.log('Auto-play prevented:', e));
                 updateControls();
