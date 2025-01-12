@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Player</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            background-color: #1a1a1a;
+            font-family: Arial, sans-serif;
+            height: 100vh;
+            display: flex;
+        }
+
+        .sidebar {
+            width: 120px;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.8);
+            overflow-y: auto;
+            flex-shrink: 0;
+            z-index: 2;
+        }
+
+        .thumbnail-container {
+            position: relative;
+            width: 100px;
+            height: 56px;
+            margin: 10px;
+            cursor: pointer;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+        }
+
+        .thumbnail-container.active {
+            border-color: #3498db;
+        }
+
+        .thumbnail-container:hover {
+            transform: scale(1.05);
+        }
+
+        .thumbnail {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            background: #2a2a2a;
+        }
+
+        .thumbnail-title {
+            display: none;
+            position: absolute;
+            left: 120px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(0, 0, 0, 0.8);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            white-space: nowrap;
+            z-index: 3;
+            font-size: 14px;
+        }
+
+        .thumbnail-container:hover .thumbnail-title {
+            display: block;
+        }
+        
+        .player-wrapper {
+            flex-grow: 1;
+            position: relative;
+            height: 100vh;
+        }
+
+        .player-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: #000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        #videoPlayer {
+            max-width: 100%;
+            max-height: 100vh;
+            width: auto;
+            height: auto;
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(transparent, rgba(0,0,0,0.7));
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .player-container:hover .controls,
+        .controls:hover {
+            opacity: 1;
+        }
+        
+        .nav-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 20px;
+            transition: background 0.3s;
+            margin: 0 10px;
+        }
+        
+        .nav-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+        
+        .nav-button:disabled {
+            background: rgba(255, 255, 255, 0.1);
+            cursor: not-allowed;
+        }
+        
+        #currentVideo {
+            color: white;
+            margin: 0 20px;
+            font-size: 16px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.1);
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 3px;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 80px;
+            }
+            
+            .thumbnail-container {
+                width: 70px;
+                height: 40px;
+                margin: 5px;
+            }
+
+            .thumbnail-title {
+                left: 80px;
+                font-size: 12px;
+            }
+
+            .nav-button {
+                padding: 10px 20px;
+                font-size: 18px;
+            }
+            
+            #currentVideo {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar" id="sidebar"></div>
+    <div class="player-wrapper">
+        <div class="player-container">
+            <video id="videoPlayer" controls>
+                Your browser does not support the video element.
+            </video>
+            <div class="controls">
+                <button class="nav-button" id="prevButton">&lt;</button>
+                <span id="currentVideo">1/1</span>
+                <button class="nav-button" id="nextButton">&gt;</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentVideoIndex = 0;
+        let videos = [];
+        const videoPlayer = document.getElementById('videoPlayer');
+        const prevButton = document.getElementById('prevButton');
+        const nextButton = document.getElementById('nextButton');
+        const currentVideoText = document.getElementById('currentVideo');
+        const sidebar = document.getElementById('sidebar');
+
+        // Function to scan the videos folder and return video files
+        async function scanVideos() {
+            try {
+                const response = await fetch('./videos/');
+                const text = await response.text();
+                
+                // Create a temporary DOM element to parse the directory listing
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = text;
+                
+                // Get all links from the directory listing
+                const links = Array.from(tempDiv.getElementsByTagName('a'));
+                
+                // Filter for video files and sort them numerically
+                const videoFiles = links
+                    .map(link => link.href)
+                    .filter(href => href.match(/\.(mp4|webm|ogg)$/i))
+                    .map(href => href.split('/').pop()) // Get just the filename
+                    .sort((a, b) => {
+                        const numA = parseInt(a.match(/\d+/)) || 0;
+                        const numB = parseInt(b.match(/\d+/)) || 0;
+                        return numA - numB;
+                    });
+                
+                return videoFiles.map(file => `./videos/${file}`);
+            } catch (error) {
+                console.error('Error scanning videos:', error);
+                return [];
+            }
+        }
+
+        function createThumbnail(video, index) {
+            const container = document.createElement('div');
+            container.className = 'thumbnail-container';
+            if (index === currentVideoIndex) container.classList.add('active');
+
+            const thumbnail = document.createElement('div');
+            thumbnail.className = 'thumbnail';
+            // Create a number-based background color
+            const hue = (index * 50) % 360;
+            thumbnail.style.backgroundColor = `hsl(${hue}, 70%, 30%)`;
+
+            const title = document.createElement('div');
+            title.className = 'thumbnail-title';
+            title.textContent = `Video ${index + 1}`;
+
+            container.appendChild(thumbnail);
+            container.appendChild(title);
+            container.addEventListener('click', () => loadVideo(index));
+
+            return container;
+        }
+
+        function loadVideo(index) {
+            if (index >= 0 && index < videos.length) {
+                const thumbnails = document.querySelectorAll('.thumbnail-container');
+                thumbnails.forEach((thumb, i) => {
+                    thumb.classList.toggle('active', i === index);
+                });
+
+                currentVideoIndex = index;
+                videoPlayer.src = videos[index];
+                videoPlayer.load();
+                videoPlayer.play().catch(e => console.log('Auto-play prevented:', e));
+                updateControls();
+
+                const activeThumbnail = thumbnails[index];
+                activeThumbnail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+
+        function updateControls() {
+            prevButton.disabled = currentVideoIndex === 0;
+            nextButton.disabled = currentVideoIndex === videos.length - 1;
+            currentVideoText.textContent = `${currentVideoIndex + 1}/${videos.length}`;
+        }
+
+        function nextVideo() {
+            if (currentVideoIndex < videos.length - 1) {
+                loadVideo(currentVideoIndex + 1);
+            }
+        }
+
+        function previousVideo() {
+            if (currentVideoIndex > 0) {
+                loadVideo(currentVideoIndex - 1);
+            }
+        }
+
+        function togglePlay() {
+            if (videoPlayer.paused) {
+                videoPlayer.play().catch(e => console.log('Play prevented:', e));
+            } else {
+                videoPlayer.pause();
+            }
+        }
+
+        // Event listeners
+        prevButton.addEventListener('click', previousVideo);
+        nextButton.addEventListener('click', nextVideo);
+
+        // Keyboard controls
+        document.addEventListener('keydown', (event) => {
+            if (event.code === 'ArrowRight') {
+                nextVideo();
+            } else if (event.code === 'ArrowLeft') {
+                previousVideo();
+            } else if (event.code === 'Space') {
+                event.preventDefault();
+                togglePlay();
+            }
+        });
+
+        // Auto-play next video when current one ends
+        videoPlayer.addEventListener('ended', nextVideo);
+
+        // Initialize application
+        async function initializeApp() {
+            videos = await scanVideos();
+            videos.forEach((video, index) => {
+                const thumbnail = createThumbnail(video, index);
+                sidebar.appendChild(thumbnail);
+            });
+            
+            if (videos.length > 0) {
+                loadVideo(0);
+                updateControls();
+            }
+        }
+
+        // Start the application
+        initializeApp();
+    </script>
+</body>
+</html>
