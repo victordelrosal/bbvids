@@ -477,6 +477,55 @@
 
             /* ...rest of your mobile styles... */
         }
+
+        /* Add these new styles for the side navigation buttons */
+        .side-nav-button {
+            position: absolute;
+            top: 50%;
+            transform: translateY(-50%);
+            background: rgba(255, 255, 255, 0.15);
+            color: white;
+            border: none;
+            padding: 20px;
+            cursor: pointer;
+            font-size: 24px;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.3s ease, background-color 0.3s ease;
+            z-index: 10;
+        }
+
+        .side-nav-button.prev {
+            left: 20px;
+        }
+
+        .side-nav-button.next {
+            right: 20px;
+        }
+
+        .player-container:hover .side-nav-button {
+            opacity: 1;
+        }
+
+        .side-nav-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .side-nav-button:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .side-nav-button {
+                display: none;
+            }
+        }
     </style>
     <script>
         // Add this at the start of your script to ensure video attributes are set immediately
@@ -493,6 +542,8 @@
     <div class="sidebar" id="sidebar"></div>
     <div class="player-wrapper">
         <div class="player-container">
+            <button class="side-nav-button prev" id="sidePrevButton">&lt;</button>
+            <button class="side-nav-button next" id="sideNextButton">&gt;</button>
             <video id="videoPlayer" controls>
                 Your browser does not support the video element.
             </video>
@@ -654,8 +705,11 @@
         }
 
         function updateControls() {
-            prevButton.disabled = currentVideoIndex === 0;
-            nextButton.disabled = currentVideoIndex === videos.length - 1;
+            const prevButtons = [prevButton, document.getElementById('sidePrevButton')];
+            const nextButtons = [nextButton, document.getElementById('sideNextButton')];
+            
+            prevButtons.forEach(btn => btn.disabled = currentVideoIndex === 0);
+            nextButtons.forEach(btn => btn.disabled = currentVideoIndex === videos.length - 1);
             currentVideoText.textContent = `${currentVideoIndex + 1}/${videos.length}`;
         }
 
@@ -682,6 +736,8 @@
         // Event listeners
         prevButton.addEventListener('click', previousVideo);
         nextButton.addEventListener('click', nextVideo);
+        document.getElementById('sidePrevButton').addEventListener('click', previousVideo);
+        document.getElementById('sideNextButton').addEventListener('click', nextVideo);
 
         // Keyboard controls
         document.addEventListener('keydown', (event) => {
@@ -826,4 +882,3 @@
     </script>
 </body>
 </html>
-````
