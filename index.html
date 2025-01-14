@@ -124,6 +124,8 @@
             left: 0;
             padding: 0 40px;
             pointer-events: none; /* Allow clicks to pass through to video */
+            opacity: 1;
+            transition: opacity 0.3s ease;
         }
         
         .player-container:hover .controls,
@@ -222,6 +224,16 @@
                 justify-content: center;
                 align-items: center;
                 pointer-events: auto;
+                opacity: 0;
+            }
+
+            .player-container.controls-visible .controls {
+                opacity: 1;
+            }
+
+            /* Hide controls in fullscreen by default */
+            .player-container.fullscreen .controls {
+                opacity: 0;
             }
 
             .nav-button {
@@ -800,10 +812,42 @@
 
         // Add new mobile-specific functions
         function initMobileFeatures() {
+            const playerContainer = document.querySelector('.player-container');
             const sidebar = document.querySelector('.sidebar');
             const toggleBtn = document.getElementById('toggleSidebar');
             let touchStartY = 0;
             let touchStartTime = 0;
+            let controlsTimeout;
+
+            // Function to show controls
+            function showControls() {
+                playerContainer.classList.add('controls-visible');
+                // Auto-hide controls after 3 seconds
+                clearTimeout(controlsTimeout);
+                controlsTimeout = setTimeout(() => {
+                    playerContainer.classList.remove('controls-visible');
+                }, 3000);
+            }
+
+            // Show/hide controls on video tap
+            videoPlayer.addEventListener('click', (e) => {
+                e.preventDefault();
+                if (!document.fullscreenElement) {
+                    showControls();
+                }
+            });
+
+            // Prevent controls from hiding while interacting with them
+            document.querySelector('.controls').addEventListener('touchstart', (e) => {
+                clearTimeout(controlsTimeout);
+            });
+
+            // Hide controls when entering fullscreen
+            document.addEventListener('fullscreenchange', () => {
+                if (document.fullscreenElement) {
+                    playerContainer.classList.remove('controls-visible');
+                }
+            });
 
             // Toggle sidebar
             toggleBtn.addEventListener('click', () => {
