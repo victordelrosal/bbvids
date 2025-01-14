@@ -526,6 +526,23 @@
                 display: none;
             }
         }
+
+        /* Add these new styles for fullscreen mode */
+        :fullscreen .controls,
+        :fullscreen .side-nav-button,
+        :-webkit-full-screen .controls,
+        :-webkit-full-screen .side-nav-button,
+        :-moz-full-screen .controls,
+        :-moz-full-screen .side-nav-button,
+        :-ms-fullscreen .controls,
+        :-ms-fullscreen .side-nav-button {
+            display: none !important;
+        }
+
+        /* Hide native video controls in fullscreen */
+        video::-webkit-media-controls {
+            display: none !important;
+        }
     </style>
     <script>
         // Add this at the start of your script to ensure video attributes are set immediately
@@ -778,6 +795,7 @@
             }
             
             updateControls();
+            setupFullscreenHandling(); // Add this line
         }
 
         // Add new mobile-specific functions
@@ -870,6 +888,33 @@
 
             // Initialize video size
             videoPlayer.style.height = `${window.innerHeight}px`;
+        }
+
+        // Add this new function for fullscreen handling
+        function setupFullscreenHandling() {
+            const fullscreenChangeHandler = () => {
+                const isFullscreen = document.fullscreenElement !== null;
+                videoPlayer.controls = isFullscreen;
+                
+                // Force hide controls in fullscreen
+                const controls = document.querySelector('.controls');
+                const sideNavButtons = document.querySelectorAll('.side-nav-button');
+                
+                if (isFullscreen) {
+                    controls.style.display = 'none';
+                    sideNavButtons.forEach(btn => btn.style.display = 'none');
+                } else {
+                    controls.style.display = '';
+                    sideNavButtons.forEach(btn => btn.style.display = '');
+                    videoPlayer.controls = false;
+                }
+            };
+
+            // Listen for fullscreen changes
+            document.addEventListener('fullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('webkitfullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('mozfullscreenchange', fullscreenChangeHandler);
+            document.addEventListener('MSFullscreenChange', fullscreenChangeHandler);
         }
 
         // Initialize mobile features after the app loads
