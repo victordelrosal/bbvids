@@ -555,6 +555,30 @@
         video::-webkit-media-controls {
             display: none !important;
         }
+
+        @media (max-width: 768px) {
+            /* ...existing mobile styles... */
+
+            /* Update controls styles */
+            .controls {
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+
+            .player-container.controls-visible .controls {
+                opacity: 1;
+            }
+
+            /* Hide controls while playing */
+            .player-container.is-playing .controls {
+                opacity: 0;
+            }
+
+            /* Show controls when paused */
+            .player-container.is-paused .controls {
+                opacity: 1;
+            }
+        }
     </style>
     <script>
         // Add this at the start of your script to ensure video attributes are set immediately
@@ -821,11 +845,17 @@
 
             // Function to show controls
             function showControls() {
+                if (videoPlayer.paused) {
+                    playerContainer.classList.add('controls-visible');
+                    return;
+                }
+
                 playerContainer.classList.add('controls-visible');
-                // Auto-hide controls after 3 seconds
                 clearTimeout(controlsTimeout);
                 controlsTimeout = setTimeout(() => {
-                    playerContainer.classList.remove('controls-visible');
+                    if (!videoPlayer.paused) {
+                        playerContainer.classList.remove('controls-visible');
+                    }
                 }, 3000);
             }
 
@@ -932,6 +962,18 @@
 
             // Initialize video size
             videoPlayer.style.height = `${window.innerHeight}px`;
+
+            // Add video play/pause state handling
+            videoPlayer.addEventListener('play', () => {
+                playerContainer.classList.add('is-playing');
+                playerContainer.classList.remove('is-paused');
+            });
+
+            videoPlayer.addEventListener('pause', () => {
+                playerContainer.classList.remove('is-playing');
+                playerContainer.classList.add('is-paused');
+                showControls();
+            });
         }
 
         // Add this new function for fullscreen handling
