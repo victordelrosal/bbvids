@@ -132,19 +132,7 @@
         }
         
         .nav-button {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            background: rgba(255, 255, 255, 0.2);
-            border: none;
-            color: white;
-            padding: 12px 24px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 20px;
-            transition: background 0.3s;
-            pointer-events: auto; /* Re-enable clicks for buttons */
-            z-index: 10;
+            display: none;
         }
 
         #prevButton {
@@ -237,12 +225,10 @@
             }
 
             .nav-button {
+                display: block;
                 position: static;
                 transform: none;
                 margin: 0 10px;
-            }
-
-            .nav-button {
                 padding: 8px 16px;
                 font-size: 16px;
                 border-radius: 20px;
@@ -840,4 +826,4 @@
     </script>
 </body>
 </html>
-```
+````
