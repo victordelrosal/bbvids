@@ -785,23 +785,30 @@
         }
 
         function updateControls() {
+            // Remove button disabling since we now have circular navigation
             const prevButtons = [prevButton, document.getElementById('sidePrevButton')];
             const nextButtons = [nextButton, document.getElementById('sideNextButton')];
             
-            prevButtons.forEach(btn => btn.disabled = currentVideoIndex === 0);
-            nextButtons.forEach(btn => btn.disabled = currentVideoIndex === videos.length - 1);
+            prevButtons.forEach(btn => btn.disabled = false);
+            nextButtons.forEach(btn => btn.disabled = false);
             currentVideoText.textContent = `${currentVideoIndex + 1}/${videos.length}`;
         }
 
         function nextVideo() {
             if (currentVideoIndex < videos.length - 1) {
                 loadVideo(currentVideoIndex + 1);
+            } else {
+                // Wrap around to the first video
+                loadVideo(0);
             }
         }
 
         function previousVideo() {
             if (currentVideoIndex > 0) {
                 loadVideo(currentVideoIndex - 1);
+            } else {
+                // Wrap around to the last video
+                loadVideo(videos.length - 1);
             }
         }
 
