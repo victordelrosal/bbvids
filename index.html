@@ -578,6 +578,34 @@
             .player-container.is-paused .controls {
                 opacity: 1;
             }
+
+            /* Update nav button styles */
+            .nav-button {
+                background: none;
+                border: none;
+                color: white;
+                font-size: 24px;
+                padding: 10px;
+                margin: 0 5px;
+                opacity: 0.8;
+            }
+
+            .nav-button:active {
+                transform: scale(0.95);
+                opacity: 1;
+            }
+
+            /* Hide controls while playing */
+            .player-container.is-playing .controls {
+                opacity: 0;
+                pointer-events: none;
+            }
+
+            /* Show controls only when paused */
+            .player-container.is-paused .controls {
+                opacity: 1;
+                pointer-events: auto;
+            }
         }
     </style>
     <script>
@@ -850,13 +878,14 @@
                     return;
                 }
 
+                // Only show controls briefly when tapped
                 playerContainer.classList.add('controls-visible');
                 clearTimeout(controlsTimeout);
                 controlsTimeout = setTimeout(() => {
                     if (!videoPlayer.paused) {
                         playerContainer.classList.remove('controls-visible');
                     }
-                }, 3000);
+                }, 1500); // Reduced from 3000ms to 1500ms for quicker hiding
             }
 
             // Show/hide controls on video tap
@@ -966,13 +995,19 @@
             // Add video play/pause state handling
             videoPlayer.addEventListener('play', () => {
                 playerContainer.classList.add('is-playing');
-                playerContainer.classList.remove('is-paused');
+                playerContainer.classList.remove('is-paused', 'controls-visible');
             });
 
             videoPlayer.addEventListener('pause', () => {
                 playerContainer.classList.remove('is-playing');
-                playerContainer.classList.add('is-paused');
-                showControls();
+                playerContainer.classList.add('is-paused', 'controls-visible');
+            });
+
+            // Hide controls immediately when playing starts
+            videoPlayer.addEventListener('playing', () => {
+                if (!videoPlayer.paused) {
+                    playerContainer.classList.remove('controls-visible');
+                }
             });
         }
 
