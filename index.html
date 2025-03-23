@@ -867,6 +867,8 @@
             
             updateControls();
             setupFullscreenHandling(); // Add this line
+            // Add swipe navigation for both mobile and desktop
+            setupSwipeNavigation();
         }
 
         // Add new mobile-specific functions
@@ -874,8 +876,6 @@
             const playerContainer = document.querySelector('.player-container');
             const sidebar = document.querySelector('.sidebar');
             const toggleBtn = document.getElementById('toggleSidebar');
-            let touchStartY = 0;
-            let touchStartTime = 0;
             let controlsTimeout;
 
             // Function to show controls
@@ -933,15 +933,11 @@
                     } else {
                         videoPlayer.requestFullscreen();
                     }
+                    e.preventDefault(); // Prevent this from triggering swipe
+                    e.stopPropagation();
                 }
                 lastTap = currentTime;
             });
-
-            // Swipe gestures for volume and seeking
-            videoPlayer.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-                touchStartTime = e.timeStamp;
-            }, { passive: true });
 
             // Lazy loading for thumbnails
             const options = {
@@ -1120,138 +1116,6 @@
                     e.preventDefault();
                 }
             }, { passive: false });
-        }
-
-        // Remove or modify the existing volume control via swipe in initMobileFeatures
-        function initMobileFeatures() {
-            const playerContainer = document.querySelector('.player-container');
-            const sidebar = document.querySelector('.sidebar');
-            const toggleBtn = document.getElementById('toggleSidebar');
-            let touchStartY = 0;
-            let touchStartTime = 0;
-            let controlsTimeout;
-
-            // Function to show controls
-            function showControls() {
-                if (videoPlayer.paused) {
-                    playerContainer.classList.add('controls-visible');
-                    return;
-                }
-
-                // Only show controls briefly when tapped
-                playerContainer.classList.add('controls-visible');
-                clearTimeout(controlsTimeout);
-                controlsTimeout = setTimeout(() => {
-                    if (!videoPlayer.paused) {
-                        playerContainer.classList.remove('controls-visible');
-                    }
-                }, 1500); // Reduced from 3000ms to 1500ms for quicker hiding
-            }
-
-            // Show/hide controls on video tap
-            videoPlayer.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (!document.fullscreenElement) {
-                    showControls();
-                }
-            });
-
-            // Prevent controls from hiding while interacting with them
-            document.querySelector('.controls').addEventListener('touchstart', (e) => {
-                clearTimeout(controlsTimeout);
-            });
-
-            // Hide controls when entering fullscreen
-            document.addEventListener('fullscreenchange', () => {
-                if (document.fullscreenElement) {
-                    playerContainer.classList.remove('controls-visible');
-                }
-            });
-
-            // Toggle sidebar
-            toggleBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('visible');
-                toggleBtn.querySelector('.icon').textContent = 
-                    sidebar.classList.contains('visible') ? '▼' : '▲';
-            });
-
-            // Double tap to fullscreen
-            let lastTap = 0;
-            videoPlayer.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 500 && tapLength > 0) {
-                    if (document.fullscreenElement) {
-                        document.exitFullscreen();
-                    } else {
-                        videoPlayer.requestFullscreen();
-                    }
-                }
-                lastTap = currentTime;
-            });
-
-            // Lazy loading for thumbnails
-            const options = {
-                root: sidebar,
-                rootMargin: '50px',
-                threshold: 0.1
-            };
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const thumbnail = entry.target;
-                        if (thumbnail.dataset.src) {
-                            thumbnail.style.backgroundImage = `url(${thumbnail.dataset.src})`;
-                            thumbnail.dataset.src = '';
-                        }
-                    }
-                });
-            }, options);
-
-            document.querySelectorAll('.thumbnail').forEach(thumb => {
-                observer.observe(thumb);
-            });
-
-            // Setup video for mobile
-            videoPlayer.setAttribute('playsinline', ''); // Enable inline playback on iOS
-            videoPlayer.setAttribute('webkit-playsinline', ''); // For older iOS versions
-            videoPlayer.muted = true; // Initially mute to help with autoplay
-            
-            // Attempt to unmute on first interaction
-            const unmuteOnInteraction = () => {
-                videoPlayer.muted = false;
-                videoPlayer.play().catch(err => console.log('Play after unmute failed:', err));
-                document.removeEventListener('touchstart', unmuteOnInteraction);
-            };
-            document.addEventListener('touchstart', unmuteOnInteraction, { once: true });
-
-            // Ensure proper video sizing on orientation change
-            window.addEventListener('resize', () => {
-                if (document.fullscreenElement) return;
-                videoPlayer.style.height = `${window.innerHeight}px`;
-            });
-
-            // Initialize video size
-            videoPlayer.style.height = `${window.innerHeight}px`;
-
-            // Add video play/pause state handling
-            videoPlayer.addEventListener('play', () => {
-                playerContainer.classList.add('is-playing');
-                playerContainer.classList.remove('is-paused', 'controls-visible');
-            });
-
-            videoPlayer.addEventListener('pause', () => {
-                playerContainer.classList.remove('is-playing');
-                playerContainer.classList.add('is-paused', 'controls-visible');
-            });
-
-            // Hide controls immediately when playing starts
-            videoPlayer.addEventListener('playing', () => {
-                if (!videoPlayer.paused) {
-                    playerContainer.classList.remove('controls-visible');
-                }
-            });
         }
     </script>
 </body>
