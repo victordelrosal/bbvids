@@ -870,213 +870,122 @@
             setupSwipeNavigation(); // Add this line
         }
 
-        // Add this improved swipe navigation function
+        // Replace the entire setupSwipeNavigation function with this implementation
         function setupSwipeNavigation() {
+            // Debug flag - enable console logs to troubleshoot
+            const debug = true;
+            
             let touchStartY = 0;
             let touchStartX = 0;
             let touchStartTime = 0;
             
-            // Function to detect swipe
-            function handleSwipe(e) {
-                const touchEndY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
-                const touchEndX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
-                const touchEndTime = Date.now();
-                
-                const deltaY = touchStartY - touchEndY;
-                const deltaX = Math.abs(touchStartX - touchEndX);
-                const deltaTime = touchEndTime - touchStartTime;
-                
-                // Check if it's primarily a vertical swipe
-                if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > deltaX && deltaTime < 500) {
-                    if (deltaY > 0) {
-                        // Swipe up - next video
-                        nextVideo();
-                    } else {
-                        // Swipe down - previous video
-                        previousVideo();
-                    }
+            function logSwipe(direction, delta) {
+                if (debug) {
+                    console.log(`Swipe ${direction} detected! Delta: ${delta}`);
                 }
             }
             
-            // Desktop swipe with mouse
+            // Function to detect vertical swipe and trigger navigation
+            function handleSwipe(e) {
+                // Get end touch position
+                let touchEndY, touchEndX;
+                if (e.changedTouches) { // Touch event
+                    touchEndY = e.changedTouches[0].clientY;
+                    touchEndX = e.changedTouches[0].clientX;
+                } else { // Mouse event
+                    touchEndY = e.clientY;
+                    touchEndX = e.clientX;
+                }
+                
+                const touchEndTime = Date.now();
+                
+                // Calculate deltas
+                const deltaY = touchStartY - touchEndY; // Positive = up, Negative = down
+                const deltaX = Math.abs(touchStartX - touchEndX);
+                const deltaTime = touchEndTime - touchStartTime;
+                
+                if (debug) {
+                    console.log(`Touch movement: vertical ${deltaY}px, horizontal ${deltaX}px, time ${deltaTime}ms`);
+                }
+                
+                // Ensure it's a vertical swipe (more vertical than horizontal)
+                // and significant enough to be intentional
+                if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > deltaX && deltaTime < 800) {
+                    if (deltaY > 0) {
+                        // SWIPE UP = NEXT VIDEO
+                        logSwipe("UP", deltaY);
+                        nextVideo();
+                    } else {
+                        // SWIPE DOWN = PREVIOUS VIDEO
+                        logSwipe("DOWN", deltaY);
+                        previousVideo();
+                    }
+                    
+                    // Prevent any default behavior
+                    if (e.preventDefault) {
+                        e.preventDefault();
+                    }
+                    return false;
+                }
+                return true;
+            }
+            
+            // TOUCH EVENTS (Mobile)
+            videoPlayer.addEventListener('touchstart', function(e) {
+                touchStartY = e.touches[0].clientY;
+                touchStartX = e.touches[0].clientX;
+                touchStartTime = Date.now();
+                if (debug) console.log('Touch start:', touchStartY, touchStartX);
+            }, { passive: true });
+            
+            videoPlayer.addEventListener('touchend', function(e) {
+                if (debug) console.log('Touch end event triggered');
+                handleSwipe(e);
+            }, { passive: false });
+            
+            // Prevent default touchmove behavior for vertical swipes to avoid page scrolling
+            videoPlayer.addEventListener('touchmove', function(e) {
+                const deltaY = touchStartY - e.touches[0].clientY;
+                
+                // If significant vertical movement, prevent scrolling
+                if (Math.abs(deltaY) > 10) {
+                    e.preventDefault();
+                    if (debug) console.log('Prevented default touchmove');
+                }
+            }, { passive: false });
+            
+            // MOUSE EVENTS (Desktop)
             let isMouseDown = false;
             
-            videoPlayer.addEventListener('mousedown', (e) => {
+            videoPlayer.addEventListener('mousedown', function(e) {
                 isMouseDown = true;
                 touchStartY = e.clientY;
                 touchStartX = e.clientX;
                 touchStartTime = Date.now();
-                e.preventDefault(); // Prevent selection
+                if (debug) console.log('Mouse down:', touchStartY, touchStartX);
             });
             
-            document.addEventListener('mouseup', (e) => {
+            document.addEventListener('mouseup', function(e) {
                 if (isMouseDown) {
+                    if (debug) console.log('Mouse up event with drag active');
                     isMouseDown = false;
                     handleSwipe(e);
                 }
             });
             
-            document.addEventListener('mousemove', (e) => {
+            document.addEventListener('mousemove', function(e) {
                 if (!isMouseDown) return;
-                // If significant drag detected, prevent selection/drag behavior
-                if (Math.abs(touchStartY - e.clientY) > 30) {
-                    e.preventDefault();
-                }
-            });
-            
-            // Mobile touch swipe
-            videoPlayer.addEventListener('touchstart', (e) => {
-                touchStartY = e.touches[0].clientY;
-                touchStartX = e.touches[0].clientX;
-                touchStartTime = Date.now();
-            }, { passive: true });
-            
-            videoPlayer.addEventListener('touchend', (e) => {
-                handleSwipe(e);
-            }, { passive: true });
-            
-            // Prevent default touch move behavior to avoid page scrolling during swipe
-            videoPlayer.addEventListener('touchmove', (e) => {
-                const touchY = e.touches[0].clientY;
-                const deltaY = touchStartY - touchY;
                 
-                // If we detect significant vertical swipe intention,
-                // prevent default scrolling
-                if (Math.abs(deltaY) > 10) {
+                // Show visual feedback and prevent text selection during dragging
+                if (Math.abs(touchStartY - e.clientY) > 10) {
                     e.preventDefault();
-                }
-            }, { passive: false });
-        }
-
-        // Add new mobile-specific functions
-        function initMobileFeatures() {
-            const playerContainer = document.querySelector('.player-container');
-            const sidebar = document.querySelector('.sidebar');
-            const toggleBtn = document.getElementById('toggleSidebar');
-            let controlsTimeout;
-
-            // Function to show controls
-            function showControls() {
-                if (videoPlayer.paused) {
-                    playerContainer.classList.add('controls-visible');
-                    return;
-                }
-
-                // Only show controls briefly when tapped
-                playerContainer.classList.add('controls-visible');
-                clearTimeout(controlsTimeout);
-                controlsTimeout = setTimeout(() => {
-                    if (!videoPlayer.paused) {
-                        playerContainer.classList.remove('controls-visible');
-                    }
-                }, 1500); // Reduced from 3000ms to 1500ms for quicker hiding
-            }
-
-            // Show/hide controls on video tap
-            videoPlayer.addEventListener('click', (e) => {
-                e.preventDefault();
-                if (!document.fullscreenElement) {
-                    showControls();
+                    document.body.style.cursor = 'grabbing';
                 }
             });
-
-            // Prevent controls from hiding while interacting with them
-            document.querySelector('.controls').addEventListener('touchstart', (e) => {
-                clearTimeout(controlsTimeout);
-            });
-
-            // Hide controls when entering fullscreen
-            document.addEventListener('fullscreenchange', () => {
-                if (document.fullscreenElement) {
-                    playerContainer.classList.remove('controls-visible');
-                }
-            });
-
-            // Toggle sidebar
-            toggleBtn.addEventListener('click', () => {
-                sidebar.classList.toggle('visible');
-                toggleBtn.querySelector('.icon').textContent = 
-                    sidebar.classList.contains('visible') ? '▼' : '▲';
-            });
-
-            // Double tap to fullscreen
-            let lastTap = 0;
-            videoPlayer.addEventListener('touchend', (e) => {
-                const currentTime = new Date().getTime();
-                const tapLength = currentTime - lastTap;
-                if (tapLength < 500 && tapLength > 0) {
-                    if (document.fullscreenElement) {
-                        document.exitFullscreen();
-                    } else {
-                        videoPlayer.requestFullscreen();
-                    }
-                    e.preventDefault(); // Prevent this from triggering swipe
-                    e.stopPropagation();
-                }
-                lastTap = currentTime;
-            });
-
-            // Lazy loading for thumbnails
-            const options = {
-                root: sidebar,
-                rootMargin: '50px',
-                threshold: 0.1
-            };
-
-            const observer = new IntersectionObserver((entries) => {
-                entries.forEach(entry => {
-                    if (entry.isIntersecting) {
-                        const thumbnail = entry.target;
-                        if (thumbnail.dataset.src) {
-                            thumbnail.style.backgroundImage = `url(${thumbnail.dataset.src})`;
-                            thumbnail.dataset.src = '';
-                        }
-                    }
-                });
-            }, options);
-
-            document.querySelectorAll('.thumbnail').forEach(thumb => {
-                observer.observe(thumb);
-            });
-
-            // Setup video for mobile
-            videoPlayer.setAttribute('playsinline', ''); // Enable inline playback on iOS
-            videoPlayer.setAttribute('webkit-playsinline', ''); // For older iOS versions
-            videoPlayer.muted = true; // Initially mute to help with autoplay
             
-            // Attempt to unmute on first interaction
-            const unmuteOnInteraction = () => {
-                videoPlayer.muted = false;
-                videoPlayer.play().catch(err => console.log('Play after unmute failed:', err));
-                document.removeEventListener('touchstart', unmuteOnInteraction);
-            };
-            document.addEventListener('touchstart', unmuteOnInteraction, { once: true });
-
-            // Ensure proper video sizing on orientation change
-            window.addEventListener('resize', () => {
-                if (document.fullscreenElement) return;
-                videoPlayer.style.height = `${window.innerHeight}px`;
-            });
-
-            // Initialize video size
-            videoPlayer.style.height = `${window.innerHeight}px`;
-
-            // Add video play/pause state handling
-            videoPlayer.addEventListener('play', () => {
-                playerContainer.classList.add('is-playing');
-                playerContainer.classList.remove('is-paused', 'controls-visible');
-            });
-
-            videoPlayer.addEventListener('pause', () => {
-                playerContainer.classList.remove('is-playing');
-                playerContainer.classList.add('is-paused', 'controls-visible');
-            });
-
-            // Hide controls immediately when playing starts
-            videoPlayer.addEventListener('playing', () => {
-                if (!videoPlayer.paused) {
-                    playerContainer.classList.remove('controls-visible');
-                }
+            // Reset cursor when mouse is released
+            document.addEventListener('mouseup', function() {
+                document.body.style.cursor = 'default';
             });
         }
 
