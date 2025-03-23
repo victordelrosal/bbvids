@@ -866,9 +866,86 @@
             }
             
             updateControls();
-            setupFullscreenHandling(); // Add this line
-            // Add swipe navigation for both mobile and desktop
-            setupSwipeNavigation();
+            setupFullscreenHandling();
+            setupSwipeNavigation(); // Add this line
+        }
+
+        // Add this improved swipe navigation function
+        function setupSwipeNavigation() {
+            let touchStartY = 0;
+            let touchStartX = 0;
+            let touchStartTime = 0;
+            
+            // Function to detect swipe
+            function handleSwipe(e) {
+                const touchEndY = e.changedTouches ? e.changedTouches[0].clientY : e.clientY;
+                const touchEndX = e.changedTouches ? e.changedTouches[0].clientX : e.clientX;
+                const touchEndTime = Date.now();
+                
+                const deltaY = touchStartY - touchEndY;
+                const deltaX = Math.abs(touchStartX - touchEndX);
+                const deltaTime = touchEndTime - touchStartTime;
+                
+                // Check if it's primarily a vertical swipe
+                if (Math.abs(deltaY) > 50 && Math.abs(deltaY) > deltaX && deltaTime < 500) {
+                    if (deltaY > 0) {
+                        // Swipe up - next video
+                        nextVideo();
+                    } else {
+                        // Swipe down - previous video
+                        previousVideo();
+                    }
+                }
+            }
+            
+            // Desktop swipe with mouse
+            let isMouseDown = false;
+            
+            videoPlayer.addEventListener('mousedown', (e) => {
+                isMouseDown = true;
+                touchStartY = e.clientY;
+                touchStartX = e.clientX;
+                touchStartTime = Date.now();
+                e.preventDefault(); // Prevent selection
+            });
+            
+            document.addEventListener('mouseup', (e) => {
+                if (isMouseDown) {
+                    isMouseDown = false;
+                    handleSwipe(e);
+                }
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isMouseDown) return;
+                // If significant drag detected, prevent selection/drag behavior
+                if (Math.abs(touchStartY - e.clientY) > 30) {
+                    e.preventDefault();
+                }
+            });
+            
+            // Mobile touch swipe
+            videoPlayer.addEventListener('touchstart', (e) => {
+                touchStartY = e.touches[0].clientY;
+                touchStartX = e.touches[0].clientX;
+                touchStartTime = Date.now();
+            }, { passive: true });
+            
+            videoPlayer.addEventListener('touchend', (e) => {
+                handleSwipe(e);
+            }, { passive: true });
+            
+            // Prevent default touch move behavior to avoid page scrolling during swipe
+            videoPlayer.addEventListener('touchmove', (e) => {
+                const touchY = e.touches[0].clientY;
+                const deltaY = touchStartY - touchY;
+                
+                // If we detect significant vertical swipe intention,
+                // prevent default scrolling
+                if (Math.abs(deltaY) > 10) {
+                    e.preventDefault();
+                }
+            }, { passive: false });
         }
 
         // Add new mobile-specific functions
